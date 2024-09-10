@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users{
+  userId Int @id @default(autoincrement()) @map("userId")
+  email String @unique @map("email")
+  password String @map("password")
+
+  characters characters[]
+
+  @@map("Users")
+}
+
+model characters{
+  characterId Int @id @default(autoincrement()) @map("characterId")
+  userId Int @map("userId")
+  characterName String @map("characterName")
+  createdAt DateTime @default(now()) @map("createdAt")
+  health Int @default(500) @map("health")
+  power Int  @default(100) @map("power")
+  money Int  @default(10000)  @map("money")
+
+  user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  equipments equipments[]
+  inventory inventory[]
+
+  @@map("characters")
+}
+
+model items{
+  itemId Int @id @default(autoincrement()) @map("itemId")
+  name String @map("name")
+  health Int @default(10)  @map("health")
+  power  Int @default(1) @map("power")
+  price  Int @default(100) @map("price")
+
+  equipments equipments[]
+  inventory inventory[]
+
+  @@map("items")
+}
+
+model inventory{
+  characterId Int @id @map("characterId")
+  itemId Int @map("itemId")
+  count Int @map("count")
+
+  character characters @relation(fields: [characterId], references: [characterId], onDelete: Cascade)
+  item items @relation(fields: [itemId], references: [itemId], onDelete: Cascade)
+
+  @@map("inventory")
+}
+
+model equipments{
+  characterId Int @id @map("characterId")
+  itemId Int @map("itemId")
+
+  character characters @relation(fields: [characterId], references: [characterId], onDelete: Cascade)
+  item items @relation(fields: [itemId], references: [itemId], onDelete: Cascade)
+
+  @@map("equipments")
+}
