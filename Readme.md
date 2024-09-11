@@ -99,32 +99,32 @@ router.post('/characters/store/:characterId')
 
 ### 아이템 구매 API
 - body에서 전달받은 아이템의 코드를 이용해 가격의 합계를 구하고 소지금과 합계를 비교해 서로 다른 메세지를 반환
-* 추가사항 : 인벤토리에 아이템이 존재하면 갯수 업데이트, 존재하지않으면 새로운 데이터 생성
+* 추가사항 : 인벤토리에 아이템이 존재하면 갯수 업데이트, 존재하지않으면 새로운 데이터 생성   
 router.post('/characters/store/:characterId')   
 
 ### 아이템 판매 API
 - 구매와 마찬가지로 전달받은 아이템목록을 인벤토리와 비교해서 판매여부 결정
-- 가격의 60%을 소지금으로 지급
+- 가격의 60%을 소지금으로 지급   
 router.post('/characters/store/sell/:characterId')
 
 ### 캐릭터 인벤토리 조회 API
-- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 소지하고 있는 인벤토리를 보여줌
+- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 소지하고 있는 인벤토리를 보여줌   
 router.get('/characters/inventory/:characterId')
 
 ### 캐릭터 장비창 조회 API
-- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 장착하고 있는 장비창을 보여줌
+- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 장착하고 있는 장비창을 보여줌   
 router.get('/characters/equipment/:characterId')
 
 ### 캐릭터 장비 장착 API
 - URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 인벤토리에 지니고 있는 아이템을 장착함
-- 중복된 장착의 경우 에러를 반환
+- 중복된 장착의 경우 에러를 반환   
 router.post('/characters/equipment/:characterId')
 
 ### 캐릭터 장비 탈착 API
 - URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 장비창에 지니고 있는 아이템을 탈착함
-- 장착된 장비가 없는 경우 에러를 반환
+- 장착된 장비가 없는 경우 에러를 반환   
 router.post('/characters/unequipment/:characterId')
 
 ### 캐릭터 경제활동 API
-- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터의 소지금을 추가함
+- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터의 소지금을 추가함   
 router.patch('/characters/earn/:characterId')
