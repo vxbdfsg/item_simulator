@@ -87,11 +87,7 @@ router.get('/item/:itemId')
 ## 3.도전 과제 API 생성 
 
 ### 아이템 구매 API
-<<<<<<< Updated upstream
 - body에서 전달받은 아이템의 코드를 이용해 가격의 합계를 구하고 소지금과 합계를 비교해 서로 다른 메세지를 반환   
-=======
-- body에서 전달받은 아이템의 코드를 이용해 가격의 합계를 구하고 소지금과 합계를 비교해 서로 다른 메세지를 반환
->>>>>>> Stashed changes
 router.post('/characters/store/:characterId')   
 
 
@@ -99,8 +95,7 @@ router.post('/characters/store/:characterId')
 # 09-11 작업내용
 
 ## 3.도전 과제 API 생성
-<<<<<<< Updated upstream
-=======
+
 
 ### 아이템 구매 API
 - body에서 전달받은 아이템의 코드를 이용해 가격의 합계를 구하고 소지금과 합계를 비교해 서로 다른 메세지를 반환
