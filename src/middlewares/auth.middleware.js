@@ -3,11 +3,13 @@ import { prisma } from '../utils/prisma/index.js';
 
 export default async function (req, res, next) {
     try {
-        const { authorization } = req.cookies;
+        const authorization = req.headers['authorization'];
+        console.log("auth2 : " + authorization);
         if (!authorization)
             throw new Error('요청한 사용자의 토큰이 존재하지 않습니다.');
 
-        const [tokenType, token] = authorization.split(' ');
+        const [tokenType, token] = authorization.split('%20');
+        console.log(tokenType, token);
         if (tokenType !== 'Bearer')
             throw new Error('토큰타입이 Bearer형식이 아닙니다.');
 

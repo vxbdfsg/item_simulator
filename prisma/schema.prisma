@@ -54,19 +54,24 @@ model items{
 }
 
 model inventory{
-  characterId Int @id @map("characterId")
+  characterId Int @map("characterId")
   itemId Int @map("itemId")
+  name String @map("name")
   count Int @map("count")
 
   character characters @relation(fields: [characterId], references: [characterId], onDelete: Cascade)
   item items @relation(fields: [itemId], references: [itemId], onDelete: Cascade)
 
+  @@id([characterId, itemId])
+
   @@map("inventory")
 }
 
 model equipments{
-  characterId Int @id @map("characterId")
+  id Int @id @default(autoincrement()) @map("id")
   itemId Int @map("itemId")
+  characterId Int @map("characterId")
+  name String @map("name")
 
   character characters @relation(fields: [characterId], references: [characterId], onDelete: Cascade)
   item items @relation(fields: [itemId], references: [itemId], onDelete: Cascade)

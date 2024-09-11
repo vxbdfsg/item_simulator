@@ -51,7 +51,7 @@ router.post('/sign-in', async (req, res, next) => {
     }
     const token = jwt.sign({ userId: user.userId }, 'custom-secret-key');
 
-    res.cookie('authorization', `Bearer ${token}`);
+    res.header('authorization', `Bearer ${token}`);
     return res.status(200).json({ message: '로그인에 성공하였습니다.' });
 });
 
@@ -105,19 +105,18 @@ router.get('/characters/:characterId', authMiddleware, async (req, res, next) =>
             },
         });
 
-        return res.status(200).json({data : data});
-    }
-    else{
+        return res.status(200).json({ data: data });
+    } else {
         const data = await prisma.characters.findFirst({
             where: { characterId: +characterId },
             select: {
                 characterName: true,
                 health: true,
-                power: true
+                power: true,
             },
         });
 
-        return res.status(200).json({data : data});
+        return res.status(200).json({ data: data });
     }
 });
 
@@ -131,9 +130,9 @@ router.post('/item/create', async (req, res, next) => {
     const item = await prisma.items.create({
         data: {
             name: name,
-            health : health,
-            power : power,
-            price : price
+            health: health,
+            power: power,
+            price: price,
         },
     });
 
@@ -142,15 +141,15 @@ router.post('/item/create', async (req, res, next) => {
 
 /* 아이템 수정 API */
 router.patch('/item/create/:itemId', async (req, res, next) => {
-    const { name, health, power} = req.body;
-    const {itemId} = req.params;
+    const { name, health, power } = req.body;
+    const { itemId } = req.params;
 
     const item = await prisma.items.update({
-        where : {itemId : +itemId},
+        where: { itemId: +itemId },
         data: {
             name: name,
-            health : health,
-            power : power,
+            health: health,
+            power: power,
         },
     });
 
@@ -160,63 +159,456 @@ router.patch('/item/create/:itemId', async (req, res, next) => {
 /* 아이템 테이블 조회 API */
 router.get('/item', async (req, res, next) => {
     const data = await prisma.items.findMany({
-        select:{
-            itemId : true,
-            name : true,
-            price : true
-        }
-    })
+        select: {
+            itemId: true,
+            name: true,
+            price: true,
+        },
+    });
 
     return res.status(200).json({ data: data });
 });
 
 /* 아이템 상세 조회 API */
 router.get('/item/:itemId', async (req, res, next) => {
-    const {itemId} = req.params;
+    const { itemId } = req.params;
 
     const data = await prisma.items.findFirst({
-        where : {itemId : +itemId},
-        select:{
-            itemId : true,
-            name : true,
-            health : true,
-            power : true,
-            price : true
-        }
-    })
+        where: { itemId: +itemId },
+        select: {
+            itemId: true,
+            name: true,
+            health: true,
+            power: true,
+            price: true,
+        },
+    });
 
     return res.status(200).json({ data: data });
 });
 
 /* 아이템 구매 API */
-router.post('/characters/store/:characterId', authMiddleware, async (req, res, next) =>{
+router.post('/characters/store/:characterId', authMiddleware, async (req, res, next) => {
     const list = req.body;
-    const {userId} = req.user;
+    const { userId } = req.user;
     let sum = 0;
-    const {characterId} = req.params;
-    for(let i = 0 ; i < list.length ; i++){
+    const { characterId } = req.params;
+
+    for (let i = 0; i < list.length; i++) {
         const itemId = list[i].itemId;
         const cost = await prisma.items.findFirst({
-            where : {itemId : +itemId},
-            select :{ price : true}
-        })
+            where: { itemId: +itemId },
+            select: { price: true },
+        });
         sum += list[i].count * cost.price;
     }
-    console.log("buying cost : " + sum);
-    const having = await prisma.characters.findFirst({
-        where : {characterId : +characterId},
-        select :{ money : true}
-    })
+    console.log('buying cost : ' + sum);
 
-    if(having.money < sum) return res.status(409).json({message : "소지금이 부족합니다."});
-    else{
+    const having = await prisma.characters.findFirst({
+        where: { characterId: +characterId },
+        select: { money: true },
+    });
+
+    if (having.money < sum) return res.status(409).json({ message: '소지금이 부족합니다.' });
+    else {
         const buyItem = await prisma.characters.update({
-            where : {characterId : +characterId},
-            data : {money : having.money - sum}
-        })
+            where: { characterId: +characterId },
+            data: { money: having.money - sum },
+        });
+
+        for (let i = 0; i < list.length; i++) {
+            const itemId = list[i].itemId;
+            const count = list[i].count;
+
+            // 인벤토리에 해당 아이템이 있는지 확인
+            const existingInventory = await prisma.inventory.findFirst({
+                where: {
+                    characterId: +characterId,
+                    itemId: +itemId,
+                },
+            });
+
+            if (existingInventory) {
+                // 이미 인벤토리에 있으면 수량 증가
+                await prisma.inventory.update({
+                    where: {
+                        characterId_itemId: {
+                            characterId: +characterId,
+                            itemId: +itemId,
+                        },
+                    },
+                    data: { count: existingInventory.count + count },
+                });
+                console.log('exist : ' + existingInventory);
+            } else {
+                // 없으면 새로운 인벤토리 항목 추가
+                const name = await prisma.items.findFirst({
+                    where: { itemId: +itemId },
+                    select: { name: true },
+                });
+                console.log('name : ' + name.name);
+                await prisma.inventory.create({
+                    data: {
+                        characterId: +characterId,
+                        itemId: +itemId,
+                        name: name.name,
+                        count: count,
+                    },
+                });
+                console.log('인벤추가');
+            }
+        }
     }
 
-    return res.status(200).json({data : sum});
+    return res.status(200).json({ data: having.money - sum });
+});
+
+/* 아이템 판매 API */
+router.post('/characters/store/sell/:characterId', authMiddleware, async (req, res, next) => {
+    const list = req.body;
+    const { userId } = req.user;
+    let sum = 0;
+    const { characterId } = req.params;
+
+    let checkItem = false;
+
+    for (let i = 0; i < list.length; i++) {
+        const itemId = list[i].itemId;
+        const count = list[i].count;
+
+        // 인벤토리에 해당 아이템이 있는지 확인
+        const existingInventory = await prisma.inventory.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+        });
+
+        if (count > existingInventory.count) checkItem = true;
+    }
+
+    if (checkItem) return res.status(409).json({ message: '판매불가!' });
+    else {
+        for (let i = 0; i < list.length; i++) {
+            const itemId = list[i].itemId;
+            const count = list[i].count;
+
+            // 인벤토리에 해당 아이템이 있는지 확인
+            const existingInventory = await prisma.inventory.findFirst({
+                where: {
+                    characterId: +characterId,
+                    itemId: +itemId,
+                },
+            });
+
+            if (existingInventory) {
+                // 이미 인벤토리에 있으면 수량 증가
+                await prisma.inventory.update({
+                    where: {
+                        characterId_itemId: {
+                            characterId: +characterId,
+                            itemId: +itemId,
+                        },
+                    },
+                    data: { count: existingInventory.count - count },
+                });
+                console.log('exist : ' + existingInventory);
+            }
+        }
+    }
+
+    const showinven = await prisma.inventory.findMany({
+        where: { characterId: +characterId },
+        select: {
+            characterId: true,
+            itemId: true,
+            name: true,
+            count: true,
+        },
+    });
+
+    for (let i = 0; i < list.length; i++) {
+        const itemId = list[i].itemId;
+        const cost = await prisma.items.findFirst({
+            where: { itemId: +itemId },
+            select: { price: true },
+        });
+        sum += list[i].count * cost.price;
+    }
+    sum *= 0.6;
+    console.log('selling cost : ' + sum);
+
+    const having = await prisma.characters.findFirst({
+        where: { characterId: +characterId },
+        select: { money: true },
+    });
+
+    const sellItem = await prisma.characters.update({
+        where: { characterId: +characterId },
+        data: { money: having.money + sum },
+    });
+
+    return res.status(200).json({ data: showinven });
+});
+
+/* 캐릭터 인벤토리 조회 API */
+router.get('/characters/inventory/:characterId', authMiddleware, async (req, res, next) => {
+    const { characterId } = req.params;
+    const { userId } = req.user;
+
+    const showinven = await prisma.inventory.findMany({
+        where: { characterId: +characterId },
+        select: {
+            characterId: true,
+            itemId: true,
+            name: true,
+            count: true,
+        },
+    });
+
+    return res.status(200).json({ data: showinven });
+});
+
+/* 캐릭터 장비창 조회 API */
+router.get('/characters/equipment/:characterId', authMiddleware, async (req, res, next) => {
+    const { characterId } = req.params;
+    const { userId } = req.user;
+
+    const showequip = await prisma.equipments.findMany({
+        where: { characterId: +characterId },
+        select: {
+            characterId: true,
+            itemId: true,
+            name: true,
+        },
+    });
+
+    return res.status(200).json({ data: showequip });
+});
+
+/* 캐릭터 장비 장착 API */
+router.post('/characters/equipment/:characterId', authMiddleware, async (req, res, next) => {
+    const { characterId } = req.params;
+    const { userId } = req.user;
+    const equiplist = req.body;
+
+    let checkinven = false;
+
+    for (let i = 0; i < equiplist.length; i++) {
+        const itemId = equiplist[i].itemId;
+
+        // 인벤토리에 해당 아이템이 있는지 확인
+        const existingInventory = await prisma.inventory.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+        });
+
+        if (!existingInventory) checkinven = true;
+    }
+    if (checkinven) return res.status(409).json({ message: '인벤토리에 아이템이 없습니다' });
+
+    let checkequip = false;
+
+    for (let i = 0; i < equiplist.length; i++) {
+        const itemId = equiplist[i].itemId;
+
+        // 장비창에 해당 아이템이 있는지 확인
+        const existingEquipments = await prisma.equipments.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+        });
+
+        if (existingEquipments) {
+            checkequip = true;
+            console.log('existingEquipments ', existingEquipments);
+        }
+    }
+
+    if (checkequip) return res.status(409).json({ message: '중복된 아이템 장착입니다.' });
+
+    for (let i = 0; i < equiplist.length; i++) {
+        const itemId = equiplist[i].itemId;
+
+        const iteminfo = await prisma.items.findFirst({
+            where: { itemId: +itemId },
+        });
+        console.log(iteminfo.name);
+
+        const invenToEquip = await prisma.equipments.create({
+            data: {
+                characterId: +characterId,
+                itemId: +itemId,
+                name: iteminfo.name,
+            },
+        });
+
+        console.log('characterId:', characterId);
+        console.log('itemId:', itemId);
+        console.log('iteminfo.name:', iteminfo.name);
+
+        const stat = await prisma.characters.findFirst({
+            where: { characterId: +characterId },
+            select: {
+                health: true,
+                power: true,
+            },
+        });
+
+        const updateStat = await prisma.characters.update({
+            where: { characterId: +characterId },
+            data: {
+                health: stat.health + iteminfo.health,
+                power: stat.power + iteminfo.power,
+            },
+        });
+
+        const updateInven = await prisma.inventory.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+            select: {
+                count: true,
+            },
+        });
+        if (updateInven.count === 1) {
+            const deleteInven = await prisma.inventory.delete({
+                where: {
+                    characterId_itemId: {
+                        characterId: +characterId,
+                        itemId: +itemId,
+                    },
+                },
+            });
+        } else {
+            const minusInven = await prisma.inventory.update({
+                where: {
+                    characterId_itemId: {
+                        characterId: +characterId,
+                        itemId: +itemId,
+                    },
+                },
+                data: {
+                    count: updateInven.count - 1,
+                },
+            });
+        }
+    }
+
+    return res.status(201).json({ message: '장착완료' });
+});
+
+/* 캐릭터 장비 탈착 API */
+router.post('/characters/unequipment/:characterId', authMiddleware, async (req, res, next) => {
+    const { characterId } = req.params;
+    const { userId } = req.user;
+    const equiplist = req.body;
+
+    let checkequip = false;
+
+    for (let i = 0; i < equiplist.length; i++) {
+        const itemId = equiplist[i].itemId;
+
+        // 장비창에 해당 아이템이 있는지 확인
+        const existingequipments = await prisma.equipments.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+        });
+
+        if (!existingequipments) checkequip = true;
+    }
+
+    if (checkequip) return res.status(409).json({ message: '해당장비를 장착하고 있지 않습니다.' });
+
+    for (let i = 0; i < equiplist.length; i++) {
+        const itemId = equiplist[i].itemId;
+        const equipId = await prisma.equipments.findFirst({
+            where: { characterId: +characterId, itemId: +itemId },
+        });
+
+        const deleteEquip = await prisma.equipments.delete({
+            where: {
+                id : equipId.id
+            },
+        });
+
+        const existingInven = await prisma.inventory.findFirst({
+            where: {
+                characterId: +characterId,
+                itemId: +itemId,
+            },
+        });
+
+        if (!existingInven) {
+            const itemInfo = await prisma.items.findFirst({
+                where: {
+                    itemId: +itemId,
+                },
+            });
+
+            await prisma.inventory.create({
+                data: {
+                    characterId: +characterId,
+                    itemId: +itemId,
+                    name: itemInfo.name,
+                    count: 1,
+                },
+            });
+        }
+        else{
+            const itemInfo = await prisma.items.findFirst({
+                where: {
+                    itemId: +itemId,
+                },
+            });
+            const invencount = await prisma.inventory.findFirst({
+                where : {
+                    characterId: +characterId,
+                        itemId: +itemId,
+                },
+                select: {
+                    count : true
+                }
+            });
+
+            await prisma.inventory.update({
+                where : {
+                    characterId_itemId: {
+                        characterId: +characterId,
+                        itemId: +itemId,
+                    },
+                },
+                data: {
+                    count: invencount.count + 1,
+                },
+            });
+        }
+    }
+
+    return res.status(201).json({message : "탈착완료"});
+});
+
+/* 캐릭터 경제활동 API */
+router.patch('/characters/earn/:characterId', authMiddleware, async (req, res, next) => {
+    const { characterId } = req.params;
+
+    const having = await prisma.characters.findFirst({
+        where: { characterId: +characterId },
+        select: { money: true },
+    });
+
+    const earn = await prisma.characters.update({
+        where: { characterId: +characterId },
+        data: { money: having.money + 10000 },
+    });
+
+    return res.status(200).json({ data: earn });
 });
 
 /*
