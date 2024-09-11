@@ -128,4 +128,3 @@ router.post('/characters/unequipment/:characterId')
 ### 캐릭터 경제활동 API
 - URL로 전달받은 캐릭터의 ID를 이용해 캐릭터의 소지금을 추가함
 router.patch('/characters/earn/:characterId')
->>>>>>> Stashed changes
