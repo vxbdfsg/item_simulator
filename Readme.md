@@ -116,8 +116,14 @@ router.get('/characters/inventory/:characterId')
 router.get('/characters/equipment/:characterId')
 
 ### 캐릭터 장비 장착 API
+- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 인벤토리에 지니고 있는 아이템을 장착함
+- 중복된 장착의 경우 에러를 반환
+router.post('/characters/equipment/:characterId')
 
 ### 캐릭터 장비 탈착 API
+- URL로 전달받은 캐릭터의 ID를 이용해 캐릭터가 현재 장비창에 지니고 있는 아이템을 탈착함
+- 장착된 장비가 없는 경우 에러를 반환
+router.post('/characters/unequipment/:characterId')
 
 ### 캐릭터 경제활동 API
 - URL로 전달받은 캐릭터의 ID를 이용해 캐릭터의 소지금을 추가함
