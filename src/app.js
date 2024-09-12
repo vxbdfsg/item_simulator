@@ -3,9 +3,12 @@ import cookieParser from 'cookie-parser';
 import LogMiddleware from './middlewares/log.middlewares.js';
 import ErrorHandlingMiddleware from './middlewares/error-handling.middlewares.js';
 import UsersRouter from './routes/users.router.js';
+import 'dotenv/config'
 
 const app = express();
 const PORT = 3019;
+
+console.log(process.env)
 
 app.use(LogMiddleware);
 app.use(express.json());
